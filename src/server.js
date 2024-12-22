@@ -1,39 +1,36 @@
 const express = require('express');
-const cors = require('cors');
-const path = require('path');
-
-
+const axios = require('axios');
 const app = express();
-const port = 3000;
 
-// Middleware
-app.use(cors());
-app.use(express.json()); // Parse JSON request bodies
-app.use(express.static(path.join(__dirname, '../public'))); // Serve static files
+// Middleware to parse JSON bodies
+app.use(express.json());
 
-// API Route for YanzGPT
+// Serve static files (HTML, CSS, JS) from the 'public' folder
+app.use(express.static('public'));
+
+// API route to handle user input and make external API requests
 app.post('/api', async (req, res) => {
-  const { query, prompt } = req.body;
-
-  if (!query || !prompt) {
-    return res.status(400).json({ error: "Both 'query' and 'prompt' are required!" });
-  }
+  const userMessage = req.body.query;
 
   try {
-    const response = await YanzGPT(query, prompt);
-    res.json({ response });
-  } catch (error) {
-    console.error('Error interacting with NIKKA:', error.message);
-    res.status(500).json({ error: "Failed to interact with YanzGPT API." });
-  }
-});
+    console.log('User message:', userMessage);  // Log incoming message
 
-// Serve the index.html file for the root route
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
+    // Make the API call to the external API
+    const response = await axios.get(`https://api.nexoracle.com/ai/chatgpt-3?apikey=elDrYH7GsuIeBkyw1&prompt=${encodeURIComponent(userMessage)}`);
+    
+    // Log the response data
+    console.log('API response:', response.data);
+
+    // Send the response back to the frontend
+    res.json({ response: response.data.result });
+  } catch (error) {
+    // Log error
+    console.error('Error during API call:', error.message);
+    res.status(500).json({ response: 'Connection failed. Please try again later.' });
+  }
 });
 
 // Start the server
-app.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}`);
+app.listen(3000, () => {
+  console.log('Server is running on http://localhost:3000');
 });
